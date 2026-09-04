@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tourism Vocabulary Trainer</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f4f8fb;color:#223}
+header{background:#173b61;color:#fff;padding:28px;text-align:center}
+main{max-width:980px;margin:auto;padding:20px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+nav button{background:#dfeaf3;color:#173b61}
+nav button.active,.primary{background:#2f6fa5;color:#fff}
+.panel{display:none;background:#fff;padding:22px;border-radius:16px;box-shadow:0 6px 20px #0001}
+.panel.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.card,.row{background:#f8fbfd;border:1px solid #d7e2ea;border-radius:12px;padding:12px}
+.word{font-weight:700;color:#173b61}.de{color:#687887;margin-top:4px}
+input{padding:8px;border:1px solid #b9c7d1;border-radius:8px;font:inherit}
+.ok{color:#2e7d32;font-weight:700}.bad{color:#b3261e;font-weight:700}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.draggable{background:#e5f0f7;padding:10px;margin:7px 0;border-radius:9px;cursor:grab}
+.drop{border:2px dashed #b8c8d4;min-height:44px;padding:8px;margin:7px 0;border-radius:9px}
+.drop.correct{border-color:#2e7d32;background:#eef8ef}.drop.wrong{border-color:#b3261e;background:#fff1f0}
+.score{margin-top:12px;padding:10px;background:#eef3f7;border-radius:10px;font-weight:700}
+@media(max-width:650px){.match{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>Tourism Vocabulary Trainer</h1><p>The Tourism and Leisure Industry</p></header>
+<main>
+<nav>
+<button class="active" data-tab="bank">Vocabulary Bank</button>
+<button data-tab="match">Match Game</button>
+<button data-tab="gaps">Gap Fill</button>
+<button data-tab="quiz">Quick Quiz</button>
+</nav>
+
+<section id="bank" class="panel active"><h2>Vocabulary Bank</h2><div id="bankGrid" class="grid"></div></section>
+
+<section id="match" class="panel">
+<h2>Match Game</h2><p>Drag the beginning to the correct ending.</p>
+<div class="match"><div><h3>Beginnings</h3><div id="dragList"></div></div><div><h3>Endings</h3><div id="dropList"></div></div></div>
+<button class="primary" onclick="checkMatch()">Check answers</button>
+<button onclick="initMatch()">Reset</button><div id="matchScore"></div>
+</section>
+
+<section id="gaps" class="panel">
+<h2>Gap Fill</h2><p>Complete each sentence with the correct verb or phrase.</p>
+<div id="gapList"></div>
+<button class="primary" onclick="checkGaps()">Check answers</button>
+<button onclick="initGaps()">Reset</button><div id="gapScore"></div>
+</section>
+
+<section id="quiz" class="panel">
+<h2>Quick Quiz</h2><div id="quizBox"></div>
+<button class="primary" onclick="nextQ()">Next</button><div id="quizScore"></div>
+</section>
+</main>
+
+<script>
+const vocab = [["mass tourism", "Massentourismus"], ["sustainable tourism", "nachhaltiger Tourismus"], ["tourist destination", "Reiseziel"], ["accommodation", "Unterkunft"], ["peak season", "Hauptsaison"], ["local residents", "Einheimische / lokale Bevölkerung"], ["water shortage", "Wasserknappheit"], ["CO₂ emissions", "CO₂-Emissionen / CO₂-Ausstoß"], ["create jobs", "Arbeitsplätze schaffen"], ["generate income", "Einkommen / Einnahmen generieren"], ["support local businesses", "lokale Unternehmen unterstützen"], ["consume large amounts of water", "große Mengen Wasser verbrauchen"], ["contribute to global warming", "zur globalen Erwärmung beitragen"], ["have a negative impact on", "negative Auswirkungen auf … haben"], ["lead to", "zu … führen"], ["result in", "… zur Folge haben"], ["benefit from tourism", "vom Tourismus profitieren"], ["protect the environment", "die Umwelt schützen"], ["preserve cultural heritage", "kulturelles Erbe bewahren"], ["improve infrastructure", "die Infrastruktur verbessern"]];
+const gaps = [["Tourism can ____ jobs for local people.", "create"], ["Tourism can ____ income for a region.", "generate"], ["Tourists often ____ large amounts of water.", "consume"], ["Visitors can ____ local businesses.", "support"], ["Air travel can ____ global warming.", "contribute to"], ["Mass tourism can ____ a negative impact on local communities.", "have"], ["High water consumption can ____ water shortages.", "lead to"], ["Tourism can help ____ cultural heritage.", "preserve"]];
+const pairs = [["create", "jobs"], ["generate", "income"], ["support", "local businesses"], ["consume", "large amounts of water"], ["contribute to", "global warming"], ["preserve", "cultural heritage"], ["improve", "infrastructure"], ["have a negative", "impact on local communities"]];
+const quiz = [["What is the best English expression for „Arbeitsplätze schaffen“?", ["generate jobs", "create jobs", "make employment", "produce jobs"], 1], ["What does “peak season” mean?", ["Nebensaison", "Reisezeit", "Hauptsaison", "Ferienort"], 2], ["Choose the best collocation: ______ income", ["create", "generate", "do", "make"], 1], ["What is the best translation of “water shortage”?", ["Wasserverbrauch", "Wasserknappheit", "Wasserverschmutzung", "Grundwasser"], 1], ["Complete: Air travel can ______ global warming.", ["profit from", "preserve", "contribute to", "improve"], 2]];
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
+});
+document.getElementById('bankGrid').innerHTML=vocab.map(v=>`<div class="card"><div class="word">${v[0]}</div><div class="de">${v[1]}</div></div>`).join('');
+
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function initMatch(){
+ const dl=document.getElementById('dragList'), dr=document.getElementById('dropList');
+ dl.innerHTML='';dr.innerHTML='';document.getElementById('matchScore').innerHTML='';
+ shuffle(pairs).forEach((p,i)=>{let d=document.createElement('div');d.className='draggable';d.draggable=true;d.id='d'+i;d.dataset.key=p[0];d.textContent=p[0];d.ondragstart=e=>e.dataTransfer.setData('text',d.id);dl.appendChild(d)});
+ shuffle(pairs.map(p=>p[1])).forEach(end=>{let z=document.createElement('div');z.className='drop';z.dataset.end=end;z.innerHTML='<small>'+end+'</small>';z.ondragover=e=>e.preventDefault();z.ondrop=e=>{e.preventDefault();let el=document.getElementById(e.dataTransfer.getData('text')); if(z.querySelector('.draggable')) dl.appendChild(z.querySelector('.draggable')); if(el) z.appendChild(el)};dr.appendChild(z)});
+}
+function checkMatch(){
+ let s=0; document.querySelectorAll('.drop').forEach(z=>{z.classList.remove('correct','wrong');let d=z.querySelector('.draggable');let ok=d&&pairs.some(p=>p[0]===d.dataset.key&&p[1]===z.dataset.end);z.classList.add(ok?'correct':'wrong');if(ok)s++});
+ document.getElementById('matchScore').className='score';document.getElementById('matchScore').textContent=`Score: ${s}/${pairs.length}`;
+}
+function initGaps(){
+ document.getElementById('gapList').innerHTML=gaps.map((g,i)=>`<div class="row">${g[0].replace('____',`<input id="g${i}">`)} <span id="f${i}"></span></div>`).join('');
+ document.getElementById('gapScore').innerHTML='';
+}
+function checkGaps(){
+ let s=0;gaps.forEach((g,i)=>{let v=document.getElementById('g'+i).value.trim().toLowerCase();let ok=v===g[1];let f=document.getElementById('f'+i);f.className=ok?'ok':'bad';f.textContent=ok?' ✓':' ✗ '+g[1];if(ok)s++});
+ document.getElementById('gapScore').className='score';document.getElementById('gapScore').textContent=`Score: ${s}/${gaps.length}`;
+}
+let qi=0,qs=0,answered=false;
+function renderQ(){
+ if(qi>=quiz.length){document.getElementById('quizBox').innerHTML='<h3>Finished!</h3>';document.getElementById('quizScore').className='score';document.getElementById('quizScore').textContent=`Final score: ${qs}/${quiz.length}`;return}
+ answered=false;let q=quiz[qi];
+ document.getElementById('quizBox').innerHTML=`<h3>${qi+1}. ${q[0]}</h3>`+q[1].map((o,i)=>`<label class="row" style="display:block;margin:8px 0"><input type="radio" name="q" value="${i}"> ${o}</label>`).join('')+`<div id="qfb"></div>`;
+ document.querySelectorAll('input[name=q]').forEach(r=>r.onchange=()=>{if(answered)return;answered=true;let ok=+r.value===q[2];if(ok)qs++;let f=document.getElementById('qfb');f.className=ok?'ok':'bad';f.textContent=ok?'Correct!':'Correct answer: '+q[1][q[2]]});
+}
+function nextQ(){if(!answered&&qi<quiz.length){alert('Choose an answer first.');return} qi++;renderQ()}
+initMatch();initGaps();renderQ();
+</script>
+</body></html>
